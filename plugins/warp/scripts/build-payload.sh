@@ -13,10 +13,27 @@
 # The function extracts common fields (session_id, cwd, project) from the
 # hook's stdin JSON (passed as $1), then merges any extra jq args you pass.
 
+# The maximum protocol version this plugin knows how to produce.
+PLUGIN_MAX_PROTOCOL_VERSION=1
+
+# Negotiate the protocol version with Warp.
+# Uses min(plugin_max, warp_declared), falling back to 1 if Warp doesn't advertise a version.
+negotiate_protocol_version() {
+    local warp_version="${WARP_CLI_AGENT_PROTOCOL_VERSION:-1}"
+    if [ "$warp_version" -lt "$PLUGIN_MAX_PROTOCOL_VERSION" ] 2>/dev/null; then
+        echo "$warp_version"
+    else
+        echo "$PLUGIN_MAX_PROTOCOL_VERSION"
+    fi
+}
+
 build_payload() {
     local input="$1"
     local event="$2"
     shift 2
+
+    local protocol_version
+    protocol_version=$(negotiate_protocol_version)
 
     # Extract common fields from the hook input
     local session_id cwd project
@@ -30,11 +47,12 @@ build_payload() {
     # Build the payload: common fields + any extra args passed by the caller.
     # Extra args should be jq flag pairs like: --arg key "value" or --argjson key '{"a":1}'
     jq -nc \
+        --argjson v "$protocol_version" \
         --arg agent "claude" \
         --arg event "$event" \
         --arg session_id "$session_id" \
         --arg cwd "$cwd" \
         --arg project "$project" \
         "$@" \
-        '{v:1, agent:$agent, event:$event, session_id:$session_id, cwd:$cwd, project:$project} + $ARGS.named'
+        '{v:$v, agent:$agent, event:$event, session_id:$session_id, cwd:$cwd, project:$project} + $ARGS.named'
 }
