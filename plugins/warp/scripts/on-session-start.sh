@@ -2,6 +2,15 @@
 # Hook script for Claude Code SessionStart event
 # Shows welcome message, Warp detection status, and emits plugin version
 
+if ! command -v jq &>/dev/null; then
+    cat << 'EOF'
+{
+  "systemMessage": "⚠️  Warp notifications require jq — install it with your system package manager (e.g. brew install jq, apt install jq)"
+}
+EOF
+    exit 0
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/build-payload.sh"
 
