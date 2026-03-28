@@ -7,4 +7,9 @@ BODY="${2:-}"
 
 # OSC 777 format: \033]777;notify;<title>;<body>\007
 # Write directly to /dev/tty to ensure it reaches the terminal
-printf '\033]777;notify;%s;%s\007' "$TITLE" "$BODY" > /dev/tty 2>/dev/null || true
+# Inside tmux, wrap with DCS passthrough so the sequence reaches the outer terminal
+if [ -n "$TMUX" ]; then
+    printf '\033Ptmux;\033\033]777;notify;%s;%s\007\033\\' "$TITLE" "$BODY" > /dev/tty 2>/dev/null || true
+else
+    printf '\033]777;notify;%s;%s\007' "$TITLE" "$BODY" > /dev/tty 2>/dev/null || true
+fi
