@@ -8,14 +8,18 @@ Official [Warp](https://warp.dev) terminal integration for [Claude Code](https:/
 
 Get native Warp notifications when Claude Code:
 - **Completes a task** — with a summary showing your prompt and Claude's response
-- **Needs your input** — when Claude requires approval or has a question
+- **Needs your input** — when Claude has been idle and is waiting for you
+- **Requests permission** — when Claude wants to run a tool and needs your approval
 
 Notifications appear in Warp's notification center and as system notifications, so you can context-switch while Claude works and get alerted when attention is needed.
 
-**Example notification:**
-```
-"what's 1+1" → 2
-```
+### 📡 Session Status
+
+The plugin keeps Warp informed of Claude's current state by emitting structured events on every session transition:
+- **Prompt submitted** — you sent a prompt, Claude is working
+- **Tool completed** — a tool call finished, Claude is back to running
+
+This powers Warp's inline status indicators for Claude Code sessions.
 
 ## Installation
 
@@ -27,9 +31,9 @@ Notifications appear in Warp's notification center and as system notifications, 
 /plugin install warp@claude-code-warp
 ```
 
-> ⚠️ **Important**: After installing, **restart Claude Code** for notifications to activate.
+> ⚠️ **Important**: After installing, **restart Claude Code or run /reload-plugins** for the plugin to activate.
 
-Once restarted, you'll see a confirmation message and notifications will appear automatically when Claude completes tasks.
+Once restarted, you'll see a confirmation message and notifications will appear automatically.
 
 ## Requirements
 
@@ -39,27 +43,26 @@ Once restarted, you'll see a confirmation message and notifications will appear 
 
 ## How It Works
 
-This plugin uses Warp's [pluggable notifications](https://docs.warp.dev/features/notifications) feature via OSC escape sequences. When Claude Code triggers a hook event, the plugin:
+The plugin communicates with Warp via OSC 777 escape sequences. Each hook script builds a structured JSON payload (via `build-payload.sh`) and sends it to `warp://cli-agent`, where Warp parses it to drive notifications and session UI.
 
-1. Reads the session transcript to extract your original prompt and Claude's response
-2. Formats a concise notification message
-3. Sends an OSC 777 escape sequence to Warp, which displays a native notification
+Payloads include a protocol version negotiated between the plugin and Warp (`min(plugin_version, warp_version)`), the session ID, working directory, and event-specific fields.
 
-The plugin registers three hooks:
-- **SessionStart** — shows a welcome message confirming the plugin is active
-- **Stop** — fires when Claude finishes responding
-- **Notification** — fires when Claude needs user input
+The plugin registers six hooks:
+- **SessionStart** — emits the plugin version and a welcome system message
+- **Stop** — reads the transcript to extract your prompt and Claude's response, then sends a task-complete notification
+- **Notification** (`idle_prompt`) — fires when Claude has been idle and needs your input
+- **PermissionRequest** — fires when Claude wants to run a tool, includes the tool name and a preview of its input
+- **UserPromptSubmit** — fires when you submit a prompt, signaling the session is active again
+- **PostToolUse** — fires when a tool call completes, signaling the session is no longer blocked
+
+### Legacy Support
+
+Older Warp clients that predate the structured notification protocol are still supported — they receive plain-text notifications for SessionStart, Stop, and Notification hooks.
+
 
 ## Configuration
 
 Notifications work out of the box. To customize Warp's notification behavior (sounds, system notifications, etc.), see [Warp's notification settings](https://docs.warp.dev/features/notifications).
-
-## Roadmap
-
-Future Warp integrations planned:
-- Warp AI context sharing
-- Warp Drive integration for sharing Claude Code configurations
-- Custom slash commands
 
 ## Uninstall
 
@@ -68,9 +71,10 @@ Future Warp integrations planned:
 /plugin marketplace remove claude-code-warp
 ```
 
-## Contributing
+## Versioning
 
-Contributions welcome! Please open an issue or PR on [GitHub](https://github.com/warpdotdev/claude-code-warp).
+The plugin version in `plugins/warp/.claude-plugin/plugin.json` is checked by the Warp client to detect outdated installations.
+When bumping the version here, also update `MINIMUM_PLUGIN_VERSION` in the Warp client.
 
 ## License
 

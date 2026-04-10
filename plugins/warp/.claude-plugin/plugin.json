@@ -1,10 +1,11 @@
 {
   "name": "warp",
   "description": "Warp terminal integration for Claude Code - native notifications, and more to come",
-  "version": "1.1.0",
+  "version": "2.0.0",
   "author": {
     "name": "Warp",
     "url": "https://warp.dev"
   },
-  "homepage": "https://github.com/warpdotdev/claude-code-warp"
+  "homepage": "https://github.com/warpdotdev/claude-code-warp",
+  "strict": false
 }
