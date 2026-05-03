@@ -21,10 +21,5 @@ if $IS_WARP; then
 }
 EOF
 else
-    # Not running in Warp - suggest installing
-    cat << 'EOF'
-{
-  "systemMessage": "ℹ️ Warp plugin installed but you're not running in Warp terminal. Install Warp (https://warp.dev) to get native notifications when Claude completes tasks or needs input."
-}
-EOF
+    exit 0
 fi
